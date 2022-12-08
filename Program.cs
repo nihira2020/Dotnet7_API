@@ -1,4 +1,6 @@
+using firstapi.Repos;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using System.Threading.RateLimiting;
 
@@ -10,6 +12,11 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<dbfirstcontext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("constring"));
+});
 
 builder.Services.AddRateLimiter(_ => _.AddFixedWindowLimiter(policyName: "ratepolicy", options =>
 {
