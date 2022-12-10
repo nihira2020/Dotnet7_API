@@ -1,4 +1,6 @@
 using firstapi.Repos;
+using firstapi.Repos.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
@@ -55,9 +57,69 @@ builder.Services.AddRateLimiter(_ => _.AddTokenBucketLimiter(policyName: "tokenp
 
 var app = builder.Build();
 
-app.UseRateLimiter();
+app.MapGet("/basicget", () => "Welcome to Nihira Techiees");
 
-app.MapGet("/testing",()=> DateTime.Now.ToString()).RequireRateLimiting("tokenpolicy");
+app.MapGet("/basicget1", (string channel) => "Welcome to " + channel).WithOpenApi(options =>
+{
+    var parameter = options.Parameters[0];
+    parameter.Description = "Provide channel name";
+    return options;
+}).RequireRateLimiting("slidingpolicy");
+
+app.MapGet("/getallcustomer",async (dbfirstcontext db) =>
+{
+    return await db.TblCustomers.ToListAsync();
+});
+
+app.MapGet("/getcustomerbycode/{id}", async (int id,dbfirstcontext db) =>
+{
+    return await db.TblCustomers.FindAsync(id);
+});
+
+app.MapPost("/createcustomer", async (TblCustomer obj, dbfirstcontext db) =>
+{
+     await db.TblCustomers.AddAsync(obj);
+    await db.SaveChangesAsync();
+});
+app.MapPut("/updatecustomer/{id}", async (int id,TblCustomer obj, dbfirstcontext db) =>
+{
+    var existdata = await db.TblCustomers.FindAsync(id);
+    if (existdata != null)
+    {
+        existdata.Name = obj.Name;
+        existdata.Email = obj.Email;
+        existdata.Phone= obj.Phone;
+    }
+    await db.SaveChangesAsync();
+});
+app.MapDelete("/deletecustomer/{id}", async (int id, dbfirstcontext db) =>
+{
+    var existdata = await db.TblCustomers.FindAsync(id);
+    if (existdata != null)
+    {
+        db.TblCustomers.Remove(existdata);
+    }
+    await db.SaveChangesAsync();
+});
+
+app.MapPost("/upload", async (IFormFile file) =>
+{
+    string filepath = "upload/" + file.FileName;
+    using var stream = File.OpenWrite(filepath);
+    await file.CopyToAsync(stream);
+});
+
+app.MapPost("/multiupload", async (IFormFileCollection collection) =>
+{
+    foreach (var file in collection)
+    {
+        string filepath = "upload/" + file.FileName;
+        using var stream = File.OpenWrite(filepath);
+        await file.CopyToAsync(stream);
+    }
+});
+
+app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
