@@ -1,8 +1,10 @@
-﻿using firstapi.Helpter;
+﻿using ClosedXML.Excel;
+using firstapi.Helpter;
 using firstapi.Repos;
 using firstapi.Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 
 namespace firstapi.Controllers
 {
@@ -39,6 +41,86 @@ namespace firstapi.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet("ExportExcel")]
+        public ActionResult ExportExcel()
+        {
+            var _empdata = GetEmpdata();
+            var _cusdata = GetCustomerdata();
+            using (XLWorkbook wb = new XLWorkbook())
+            {
+                var sheet1 = wb.AddWorksheet(_empdata, "Employee Records");
+                wb.AddWorksheet(_cusdata);
+
+                sheet1.Column(1).Style.Font.FontColor = XLColor.Red;
+
+                sheet1.Columns(2,4).Style.Font.FontColor = XLColor.Blue;
+
+                sheet1.Row(1).CellsUsed().Style.Fill.BackgroundColor = XLColor.Black;
+                //sheet1.Row(1).Cells(1,3).Style.Fill.BackgroundColor = XLColor.Yellow;
+                sheet1.Row(1).Style.Font.FontColor = XLColor.White;
+
+                sheet1.Row(1).Style.Font.Bold = true;
+                sheet1.Row(1).Style.Font.Shadow = true;
+                sheet1.Row(1).Style.Font.Underline = XLFontUnderlineValues.Single;
+                sheet1.Row(1).Style.Font.VerticalAlignment = XLFontVerticalTextAlignmentValues.Superscript;
+                sheet1.Row(1).Style.Font.Italic = true;
+
+                sheet1.Rows(2, 3).Style.Font.FontColor = XLColor.AshGrey;
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    wb.SaveAs(ms);
+                    return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Sample.xlsx");
+                }
+            }
+        }
+
+        [NonAction]
+        private DataTable GetEmpdata()
+        {
+            DataTable dt = new DataTable();
+            dt.TableName = "Empdata";
+            dt.Columns.Add("Code", typeof(int));
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Email", typeof(string));
+            dt.Columns.Add("Phone", typeof(string));
+            dt.Columns.Add("Designation", typeof(string));
+
+            var _list = this.dbfirstcontext.TblEmployees.ToList();
+            if(_list.Count > 0 )
+            {
+                _list.ForEach(item =>
+                {
+                    dt.Rows.Add(item.Code,item.Name,item.Email,item.Phone,item.Designation);
+                });
+            }
+
+            return dt;
+        }
+
+        [NonAction]
+        private DataTable GetCustomerdata()
+        {
+            DataTable dt = new DataTable();
+            dt.TableName = "Customerdata";
+            dt.Columns.Add("Code", typeof(int));
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Email", typeof(string));
+            dt.Columns.Add("Phone", typeof(string));
+            dt.Columns.Add("Credit Limit", typeof(int));
+
+            var _list = this.dbfirstcontext.TblCustomers.ToList();
+            if (_list.Count > 0)
+            {
+                _list.ForEach(item =>
+                {
+                    dt.Rows.Add(item.Id, item.Name, item.Email, item.Phone, item.CreditLimit);
+                });
+            }
+
+            return dt;
         }
 
         private string GetHtmlcontent()
